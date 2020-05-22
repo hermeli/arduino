@@ -17,7 +17,7 @@ int PIN_AIN[6] = {A0,A1,A2,A3,A4,A5};
 // setup()
 //******************************************************************************************************
 void setup() {
-  Serial.begin(9600);                             
+  Serial.begin(115200);                             
   Serial.print("Simple Measurement Device V1.0\r\n");                                      
   Serial.print(">> ");
 }
@@ -25,7 +25,7 @@ void setup() {
 // parseCmd()
 //******************************************************************************************************
 void parseCmd()
-{
+{ 
   // check if last command need to be restored (carriage return)
   if (command[0] == '\r')
   {
@@ -115,19 +115,18 @@ void parseCmd()
 // loop()
 //******************************************************************************************************
 void loop() {
-  while (Serial.available() > 0)                                   // if serial data is received
+  while (Serial.available() > 0)                                  // if serial data is received
   {
-    char serial_input = (char)Serial.read();                    // read serial data
-    Serial.print(serial_input);                                 // echo character
-
-    // say what you got:
-    // Serial.print("I received: ");
-    // Serial.println(serial_input, HEX);
-    
+    char serial_input = (char)Serial.read();                      // read serial data
+    Serial.print(serial_input);                                   // echo character
+        
     if (serial_cnt < MAX_CMD_LEN)
-      command[serial_cnt++] = serial_input;                         // store serial data in array
-    if (serial_input == '\r')                                   // if serial command in finished (\r received)
-      command_complete = true;                                      // command complete, leave serial event
+      command[serial_cnt++] = serial_input;                       // store serial data in array
+    if (serial_input == '\r')                                     // if serial command in finished (\r received)
+    {
+      Serial.print('\n');
+      command_complete = true;                                   
+    }      
   }
   
   if (command_complete)
@@ -145,25 +144,3 @@ void loop() {
     Serial.print("\r\n>> ");
   }
 }
-
-//******************************************************************************************************
-// serialEvent()
-//******************************************************************************************************
-/*void serialEvent()
-{
-  while (Serial.available() > 0)                                   // if serial data is received
-  {
-    char serial_input = (char)Serial.read();                    // read serial data
-    Serial.print(serial_input);                                 // echo character
-
-    // say what you got:
-    Serial.print("I received: ");
-    Serial.println(serial_input, HEX);
-    
-    if (serial_cnt < MAX_CMD_LEN)
-      command[serial_cnt++] = serial_input;                         // store serial data in array
-    if (serial_input == '\r')                                   // if serial command in finished (\r received)
-      command_complete = true;                                      // command complete, leave serial event
-  }
-}
-*/
