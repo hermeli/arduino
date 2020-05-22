@@ -16,18 +16,18 @@
 #include <ArduinoBLE.h>
 #define BUFSIZE 64
 
-const int ledPin = LED_BUILTIN;     // set ledPin to on-board LED
-
 BLEService comService("19B10010-E8F2-537E-4F6C-D104768A1214"); // create a new BLE COM service
 
 // create com characteristic and allow remote device to write & get notifications
 BLECharacteristic comCharacteristic("19B10012-E8F2-537E-4F6C-D104768A1214", BLEWrite | BLENotify, BUFSIZE);
-
+//******************************************************************************************************
+// setup()
+//******************************************************************************************************
 void setup() {
   Serial.begin(115200);
-  while (!Serial);
+  //while (!Serial);
 
-  pinMode(ledPin, OUTPUT);          // use the LED as an output
+  pinMode(LED_BUILTIN, OUTPUT);          // use the LED as an output
 
   if (!BLE.begin())                 // initialize the BLE device
   { // 1 on success, 0 on failure
@@ -39,16 +39,15 @@ void setup() {
   BLE.setAdvertisedService(comService);// set the advertised service UUID used when advertising to the value of the BLEService provided
   comService.addCharacteristic(comCharacteristic);// add the characteristics to the service
   BLE.addService(comService);       // add the service
-
-  // comCharacteristic.writeValue(0);
   BLE.advertise();                  // start advertising
   Serial.println("Bluetooth device active, waiting for connections...");
 }
-
+//******************************************************************************************************
+// loop()
+//******************************************************************************************************
 void loop() {
   int len = 0;
   byte rx[BUFSIZE];
-  char print_buf[BUFSIZE];
 
   BLE.poll();                       // poll for BLE events
   if (comCharacteristic.written())
@@ -56,9 +55,16 @@ void loop() {
     // central has written to com characteristic
     len = comCharacteristic.readValue(rx, BUFSIZE);
     for (int i = 0; i < len; i++)
-    {
-      sprintf(print_buf, "%c", rx[i]);
-      Serial.print(print_buf);
-    }
+      Serial.print((char)rx[i]);
+  }
+
+  // get serial characters and notify BLE central
+  len = Serial.available();
+  if (len > 0)
+  {
+    for (int i = 0; i < len; i++)
+      rx[i] = Serial.read();
+
+    comCharacteristic.writeValue(rx, len);
   }
 }
