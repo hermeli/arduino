@@ -1,8 +1,10 @@
 //******************************************************************************************************
 // Simple Measurement Device 
 // Provides analog (6x 10bit) and digital ports (2..13) with an Arduino Board
+// Builds for NANO 33 BLE (#define BLE_SUPPORTED) or UNO R3 (#undef BLE_SUPPORTED)
 // (c)2020, stefan.wyss@mt.com
 //******************************************************************************************************
+#define BLE_SUPPORTED 
 #define MAX_CMD_LEN    16
 
 char command[MAX_CMD_LEN];
@@ -13,6 +15,33 @@ bool command_complete = false;
 int serial_cnt = 0;
 char print_data[64];
 int PIN_AIN[6] = {A0,A1,A2,A3,A4,A5};
+
+#ifdef BLE_SUPPORTED
+#define BUFSIZE 64
+#include <ArduinoBLE.h>
+
+BLEService uartService("6E400001-B5A3-F393-E0A9-E50E24DCCA9E"); // create a new BLE UART service
+BLECharacteristic txCharacteristic("6E400002-B5A3-F393-E0A9-E50E24DCCA9E", BLENotify, BUFSIZE);
+BLECharacteristic rxCharacteristic("6E400003-B5A3-F393-E0A9-E50E24DCCA9E", BLEWrite, BUFSIZE);  // write w/o response
+#endif
+
+//******************************************************************************************************
+// publish()
+//******************************************************************************************************
+void publish(char* data)
+{
+  Serial.print(data); 
+#ifdef BLE_SUPPORTED
+  for (int len=0; len<BUFSIZE; len++)
+  {
+    if (data[len]=='\0')
+    {
+      txCharacteristic.writeValue(data, len);
+      break;
+    }
+  }
+#endif
+}
 //******************************************************************************************************
 // setup()
 //******************************************************************************************************
@@ -20,6 +49,21 @@ void setup() {
   Serial.begin(115200);                             
   Serial.print("Simple Measurement Device V1.0\r\n");                                      
   Serial.print(">> ");
+
+#ifdef BLE_SUPPORTED
+  if (!BLE.begin())                 
+  { 
+    Serial.println("Failed to start BLE!");
+    while (1);                     
+  }
+  BLE.setLocalName("BLECOM"); 
+  BLE.setAdvertisedService(uartService);
+  uartService.addCharacteristic(txCharacteristic);
+  uartService.addCharacteristic(rxCharacteristic);
+  BLE.addService(uartService);       
+  BLE.advertise();                 
+  Serial.println("Bluetooth device active, waiting for connections...");
+#endif
 }
 //******************************************************************************************************
 // parseCmd()
@@ -34,14 +78,14 @@ void parseCmd()
   }
   if (strncmp(command, "help", 4) == 0)                                
   {                                                        
-    Serial.print("Help:\r\n");    
-    Serial.print("\tainX\t: read analog port X(0..5)\r\n");  
-    Serial.print("\tunit=X\t: setup 2 digit unit (e.g. unit=mV, default unit=pt)\r\n");  
-    Serial.print("\tmap=X\t: setup analog mapping 0..X (e.g. map=5000, default map=1023)\r\n"); 
-    Serial.print("\tdinX\t: read digital port X(2..13)\r\n");
-    Serial.print("\tdoutX=Y\t: write value Y(0 or 1) on digital port X(2..13)\r\n");
+    publish("Help:\r\n");    
+    publish("\tainX\t: read analog port X(0..5)\r\n");  
+    publish("\tunit=X\t: setup 2 digit unit (e.g. unit=mV, default unit=pt)\r\n");  
+    publish("\tmap=X\t: setup analog mapping 0..X (e.g. map=5000, default map=1023)\r\n"); 
+    publish("\tdinX\t: read digital port X(2..13)\r\n");
+    publish("\tdoutX=Y\t: write value Y(0 or 1) on digital port X(2..13)\r\n");
     sprintf(print_data, "(Config: unit=%c%c, map=%d)\r\n",unit[0],unit[1],mapping); 
-    Serial.print(print_data);                                        
+    publish(print_data);                                        
   }
   else if (isDigit(command[4]) && (strncmp(command, "dout", 4) == 0))
   {
@@ -60,7 +104,7 @@ void parseCmd()
     }
     if (pin<2 || pin>13 || value<0 || value>1)
     {
-      Serial.print("Input error!\r\n"); 
+      publish("Input error!\r\n"); 
       return;
     } 
     pinMode(pin,OUTPUT);
@@ -77,12 +121,12 @@ void parseCmd()
     
     if (pin<2 || pin>13)
     {
-      Serial.print("Input error!\r\n"); 
+      publish("Input error!\r\n"); 
       return; 
     }  
     pinMode(pin,INPUT);
     sprintf(print_data,"DIN%d: %d\r\n",pin,digitalRead(pin));
-    Serial.print(print_data);
+    publish(print_data);
   }
   else if (strncmp(command, "unit=", 5) == 0)
   {
@@ -100,21 +144,30 @@ void parseCmd()
     int channel = (int)(command[3] - '0');
     if (channel < 0 || channel > 6)
     {
-      Serial.print("Input error!\r\n"); 
+      publish("Input error!\r\n"); 
       return; 
     }  
     int value = analogRead(PIN_AIN[channel]); 
     int mapped_val = map(value, 0, 1023, 0, mapping);
     sprintf(print_data, "AIN%d: %d %c%c\r\n",channel,mapped_val,unit[0],unit[1]); 
-    Serial.print(print_data);          
+    publish(print_data);          
   }
   else
-    Serial.print("Input error!\r\n");   
+    publish("Input error!\r\n");   
 }
 //******************************************************************************************************
 // loop()
 //******************************************************************************************************
 void loop() {
+#ifdef BLE_SUPPORTED
+  int ble_count=0;
+  BLE.poll();                       
+  if (rxCharacteristic.written())
+  {
+    ble_count = rxCharacteristic.readValue(command, MAX_CMD_LEN);
+    command_complete = true;
+  }
+#endif 
   while (Serial.available() > 0)                                  // if serial data is received
   {
     char serial_input = (char)Serial.read();                      // read serial data
@@ -139,7 +192,7 @@ void loop() {
       last_command[i] = command[i];     
       command[i] = 0;                                     
     }                                                             
-    serial_cnt = 0;                                                              
+    serial_cnt = 0;                                                             
     command_complete = false;                                                    
     Serial.print("\r\n>> ");
   }
