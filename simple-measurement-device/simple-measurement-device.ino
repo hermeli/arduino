@@ -20,9 +20,10 @@ int PIN_AIN[6] = {A0,A1,A2,A3,A4,A5};
 #define BUFSIZE 64
 #include <ArduinoBLE.h>
 
+// Adafruit App needs BLENotify|BLEWrite on rx & tx characteristics!
 BLEService uartService("6E400001-B5A3-F393-E0A9-E50E24DCCA9E"); // create a new BLE UART service
-BLECharacteristic txCharacteristic("6E400002-B5A3-F393-E0A9-E50E24DCCA9E", BLENotify, BUFSIZE);
-BLECharacteristic rxCharacteristic("6E400003-B5A3-F393-E0A9-E50E24DCCA9E", BLEWrite, BUFSIZE);  // write w/o response
+BLECharacteristic rxCharacteristic("6E400002-B5A3-F393-E0A9-E50E24DCCA9E", BLENotify|BLEWrite, BUFSIZE);  
+BLECharacteristic txCharacteristic("6E400003-B5A3-F393-E0A9-E50E24DCCA9E", BLENotify|BLEWrite, BUFSIZE);
 #endif
 
 //******************************************************************************************************
@@ -49,7 +50,6 @@ void setup() {
   Serial.begin(115200);                             
   Serial.print("Simple Measurement Device V1.0\r\n");                                      
   Serial.print(">> ");
-
 #ifdef BLE_SUPPORTED
   if (!BLE.begin())                 
   { 
@@ -64,6 +64,8 @@ void setup() {
   BLE.advertise();                 
   Serial.println("Bluetooth device active, waiting for connections...");
 #endif
+  // uncomment the following line if you want to save some mAmps on the Nano 33 BLE
+  // digitalWrite(LED_PWR, LOW);
 }
 //******************************************************************************************************
 // parseCmd()
@@ -159,6 +161,8 @@ void parseCmd()
 // loop()
 //******************************************************************************************************
 void loop() {
+  // uncomment the following line if you want to save some mAmps on the Nano 33 BLE (less responsive!)
+  // delay(1000);
 #ifdef BLE_SUPPORTED
   int ble_count=0;
   BLE.poll();                       
@@ -168,14 +172,14 @@ void loop() {
     command_complete = true;
   }
 #endif 
-  while (Serial.available() > 0)                                  // if serial data is received
+  while (Serial.available() > 0)                                  
   {
-    char serial_input = (char)Serial.read();                      // read serial data
-    Serial.print(serial_input);                                   // echo character
+    char serial_input = (char)Serial.read();                      
+    Serial.print(serial_input);                                  
         
     if (serial_cnt < MAX_CMD_LEN)
-      command[serial_cnt++] = serial_input;                       // store serial data in array
-    if (serial_input == '\r')                                     // if serial command in finished (\r received)
+      command[serial_cnt++] = serial_input;                      
+    if (serial_input == '\r')                                   
     {
       Serial.print('\n');
       command_complete = true;                                   
