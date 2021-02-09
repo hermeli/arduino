@@ -4,7 +4,7 @@
 // Builds for NANO 33 BLE (#define BLE_SUPPORTED) or UNO R3 (#undef BLE_SUPPORTED)
 // (c)2020, stefan.wyss@mt.com
 //******************************************************************************************************
-#define BLE_SUPPORTED 
+// #define BLE_SUPPORTED 
 #define MAX_CMD_LEN    16
 
 char command[MAX_CMD_LEN];
@@ -86,8 +86,35 @@ void parseCmd()
     publish("\tmap=X\t: setup analog mapping 0..X (e.g. map=5000, default map=1023)\r\n"); 
     publish("\tdinX\t: read digital port X(2..13)\r\n");
     publish("\tdoutX=Y\t: write value Y(0 or 1) on digital port X(2..13)\r\n");
+    publish("\tpwmX=Y\t: output PWM duty cycle Y(0..255) on UNO port X(3,5,6,9)\r\n");
     sprintf(print_data, "(Config: unit=%c%c, map=%d)\r\n",unit[0],unit[1],mapping); 
     publish(print_data);                                        
+  }
+  else if (isDigit(command[3]) && (strncmp(command, "pwm", 3) == 0))
+  {
+    int value = 0;
+    int pin = 0;
+
+    command[serial_cnt]='\0';
+
+    if (command[4] != '=')
+    {
+      publish("Input error!\r\n"); 
+      return; 
+    }  
+    pin = (int)(command[3] - '0');
+    
+    String str(&command[5]);
+    value=str.toInt();
+    
+    if (pin<0 || pin>9 || value<0 || value>255)
+    {
+      publish("Input error!\r\n"); 
+      return;
+    } 
+    analogWrite(pin,value);
+    sprintf(print_data, "PWM%d: %d\r\n",pin,value); 
+    publish(print_data); 
   }
   else if (isDigit(command[4]) && (strncmp(command, "dout", 4) == 0))
   {
