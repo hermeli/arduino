@@ -39,6 +39,16 @@ bool h12, PM, Century;
 char oledBuf[64];
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+// Pin mapping of the SSD1306 (I2C):
+// SSD1306 | Arduino Nano 33 BLE
+// 1 GND   | GND
+// 2 VCC   | +3V3
+// 3 D0    | I2C_SCL
+// 4 D1    | I2C_SDA
+// 5 RES   | D2
+// 6 DC    | +3V3
+// 7 CS    | open
+
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
