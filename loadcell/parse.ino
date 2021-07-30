@@ -1,11 +1,4 @@
 //******************************************************************************************************
-// publish()
-//******************************************************************************************************
-void publish(char* data)
-{
-  Serial.print(data); 
-}
-//******************************************************************************************************
 // parseCmd()
 //******************************************************************************************************
 void parseCmd()
@@ -18,21 +11,26 @@ void parseCmd()
   }
   if (strncmp(Cmd, "help", 4) == 0)                                
   {                                                        
-    publish("Help:\r\n");    
-    publish("\ 0g\t: calibrate with 0g (offset)\r\n");
-    publish("\ 500g\t: calibrate with 500g (scale)\r\n");
-    publish(print_data);                                        
+    Serial.print("Help:\r\n");    
+    Serial.print("  0g\t: calibrate with 0g (offset)\r\n");
+    Serial.print("  500g\t: calibrate with 500g (scale)\r\n");
+    Serial.print("  get\t: get the current weight\r\n");                                        
   }
   else if (strncmp(Cmd, "0g", 2) == 0)
   {
     scale.tare();
-    publish("0g calibration done!\r\n");
+    Serial.print("0g calibration done!\r\n");
   }   
   else if (strncmp(Cmd, "500g", 4) == 0)
   {
     scale.calibrate_scale(500, 5);
-    publish("500g calibration done!\r\n");
+    Serial.print("500g calibration done!\r\n");
+  }   
+  else if (strncmp(Cmd, "get", 3) == 0)
+  {
+    sprintf(print_data,"%dg\r\n",weight);
+    Serial.print(print_data);
   }   
   else
-    publish("Input error!\r\n");   
+    Serial.print("Input error!\r\n");   
 }

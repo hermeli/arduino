@@ -53,19 +53,27 @@ char oledBuf[64];
 
 #define OLED_RESET     2 // Reset pin # (or -1 if sharing Arduino reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define FILT_LEN 5
+float weights[FILT_LEN];
+int wIndex=0;
+float wFiltered;
+
+int weight=0;
+
 //******************************************************************************************************
 // loop()
 //******************************************************************************************************
 void loop() {
-  
+ 
   display.clearDisplay();
   display.setTextSize(4);
   display.setCursor(20,25);
-  sprintf(oledBuf,"%.0fg",scale.get_units(10));
+  
+  weight = scale.get_units();
+  sprintf(oledBuf,"%dg\r\n",weight);
   display.print(oledBuf);
-
-  // *** Here we show the display ***
-  display.display();
+  display.display();  // [29ms]
  
   // *** Handle console input ***
   while (Serial.available() > 0)                                  
