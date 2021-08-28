@@ -18,6 +18,13 @@
 // 3 CLK      | D4
 // 4 GND      | GND
 //
+// Black Button for 500g calibration (opener, i.e. 0V when pushed)
+// 1 GND      | GND
+// 2          | D5
+// Green button for 0g/tara calibration (closer, i.e 5V when pushed)
+// 1 GND      | GND
+// 2          | D6 
+//
 // PROGRAM DOWNLOAD PROCEDURE
 // Especially when using the Arduino Serial Monitor, the download of new code is a bit tricky:
 // 1) Close the Serial Monitor (and hide other Arduino sketch windows!)
@@ -30,6 +37,10 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <HX711.h>
+
+// Buttons
+int BlackButton = 5;
+int GreenButton = 6;
 
 // Serial Port stuff
 #define MAX_CMD_LEN    16
@@ -67,14 +78,41 @@ int weight=0;
 void loop() {
  
   display.clearDisplay();
-  display.setTextSize(4);
+  display.setTextSize(3);
   display.setCursor(20,25);
   
   weight = scale.get_units();
   sprintf(oledBuf,"%dg\r\n",weight);
   display.print(oledBuf);
   display.display();  // [29ms]
- 
+
+  // *** Handle buttons ***
+  if (digitalRead(GreenButton))
+  {
+    display.clearDisplay();
+    display.setCursor(20,25);
+    display.print("=0g");
+    display.display();  // [29ms]
+  
+    scale.tare();
+    delay(100);
+    while (digitalRead(GreenButton)){}
+    delay(100);
+  }
+  
+  if (!digitalRead(BlackButton))
+  {
+    display.clearDisplay();
+    display.setCursor(20,25);
+    display.print("=500g");
+    display.display();  // [29ms]
+    
+    scale.calibrate_scale(500, 5);
+    delay(100);
+    while (!digitalRead(BlackButton)){}
+    delay(100);
+  }
+    
   // *** Handle console input ***
   while (Serial.available() > 0)                                  
   {

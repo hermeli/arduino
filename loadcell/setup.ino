@@ -10,26 +10,12 @@ void setup() {
      while(1); // Don't proceed, loop forever
   }
   display.clearDisplay();
-  display.setTextSize(1);             // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE); // Draw white text
 
   scale.begin(dataPin, clockPin);
-  scale.set_scale(467.33);
-  scale.set_offset(-106861);
-  
-  /*
-  if (!APDS.begin()) {
-    Serial.println("Error initializing APDS9960 sensor!");
-  }
+  scale.set_scale(487);
+  scale.set_offset(-75400);   // -75400 (empty) to 168150 (500g) = 243550/500g => 487/g
 
-  if (!HTS.begin()) {
-    Serial.println("Error initializing humidity temperature sensor!");
-    while(1);
-  }
-
-  if (!IMU.begin()) {
-    Serial.println("Error initializing IMU!");
-    while(1);
-  }
-  */
+  pinMode(BlackButton, INPUT_PULLUP);
+  pinMode(GreenButton, INPUT_PULLUP);
 }
